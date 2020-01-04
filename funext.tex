@@ -1,0 +1,504 @@
+\documentclass{article}
+\usepackage[utf8x]{inputenc}
+\usepackage{t1enc}
+
+\usepackage{fullpage}
+\usepackage{amssymb}
+\usepackage{url}
+\usepackage{color}
+\usepackage{amsmath}
+\usepackage[all]{xy}
+
+\newcommand{\seqr}[3]
+  {\shortstack{$#2$ \\ \mbox{}\\
+                   \mbox{}\hrulefill\mbox{}\\ \mbox{}\\ $#3$} \; \raisebox{2.5ex}{$\;\mbox{$#1$}$}}
+\newcommand{\Sub}[3]{#1[#3/#2]}
+\newcommand{\defeq}{\triangleq}
+
+\newcommand{\Type}{\mathsf{Type}}
+\newcommand{\Set}{\mathsf{Set}}
+\newcommand{\Prop}{\mathsf{Prop}}
+
+\newcommand{\refl}[1]{\mathsf{refl}\,{#1}}
+\newcommand{\subst}[2]{\mathsf{subst}\,{#1}\,\mathsf{in}\,{#2}}
+\newcommand{\mkeq}[3]{{#1} =_{#2} {#3}}
+
+\newcommand{\mkprod}[3]{\Pi {#1}\!:\!{#2}.\,{#3}}
+\newcommand{\mkimp}[2]{{#1}\rightarrow{#2}}
+\newcommand{\mklam}[3]{\lambda {#1}\!:\!{#2}.\,{#3}}
+\newcommand{\mkapp}[2]{{#1}\,{#2}}
+\newcommand{\prodsort}[2]{\mathsf{max}({#1},{#2})}
+
+\newcommand{\mksig}[3]{\Sigma {#1}\!:\!{#2}.\,{#3}}
+\newcommand{\mkpair}[2]{\langle{#1},{#2}\rangle}
+\newcommand{\mkfst}[1]{{#1}.1}
+\newcommand{\mksnd}[1]{{#1}.2}
+\newcommand{\sigsort}[2]{\Sigma ({#1},{#2})}
+
+\newcommand{\sortsort}[1]{{\cal S}_{#1}}
+
+\newcommand{\zero}{0}
+\newcommand{\natsucc}[1]{\mathsf{succ}\,{#1}}
+\newcommand{\rec}[5]{\mathsf{rec}\,[\zero\, \mapsto\, #1\,|\,\natsucc{#2}\, \mapsto_{#3}\, {#4}]\,{#5}}
+\newcommand{\nat}{\mathbb{N}}
+\newcommand{\natsort}{l_{\nat}}
+
+\newcommand{\headname}{\mathsf{hd}}
+\newcommand{\tailname}{\mathsf{tl}}
+\newcommand{\streamname}{\mathsf{Stream}}
+\newcommand{\head}[1]{\headname\,{#1}}
+\newcommand{\tail}[1]{\tailname\,{#1}}
+\newcommand{\mkstream}[5]{\{\headname \mapsto {#2}; \tailname \mapsto_{#3} {#4}\}_{#1}{#5}}
+\newcommand{\stream}[1]{\streamname\,{#1}}
+
+\newcommand{\Sone}{\mathbb{S}^1}
+\newcommand{\casesone}[5]
+  {\mathsf{case}\;{#1}\;\mathsf{of}\;{#2}\;\Rightarrow\;{#3}\;|\;{#4}\;\Rightarrow\;{#5}\;\mathsf{end}}
+\newcommand{\base}{\mathsf{base}}
+\newcommand{\loopsone}{\mathsf{loop}}
+\newcommand{\Sonesort}{l_{\mathbb{S}^1}}
+
+\newcommand{\case}[2]{\mathsf{case}\;{#1}\;\mathsf{of}\;{#2}}
+
+\newcommand{\sort}[1]{\mathsf{U}_{#1}}
+
+\newcommand{\reduce}{\;\triangleright\;}
+
+\newcommand{\emptyctx}{\Box}
+\newcommand{\wfctx}[1]{{#1}~\mathsf{wf}}
+
+\newcommand{\sortrule}{\sort{}}
+\newcommand{\axrule}{\mathsf{Ax}}
+\newcommand{\ctxemptyrule}{\mathsf{Ctx}_{\emptyctx}}
+\newcommand{\ctxconsrule}{\mathsf{Ctx}_{\mathsf{cons}}}
+\newcommand{\convrule}{\mathsf{Conv}}
+\newcommand{\redconvrule}{\mathsf{Conv}_{\reduce}}
+\newcommand{\reflconvrule}{\mathsf{Refl}_{\equiv}}
+\newcommand{\symconvrule}{\mathsf{Sym}_{\equiv}}
+\newcommand{\transconvrule}{\mathsf{Trans}_{\equiv}}
+
+\newcommand{\sigeta}{\eta_{\Sigma}}
+\newcommand{\sigbeta}{\beta_{\Sigma}}
+\newcommand{\prodeta}{\eta_{\Pi}}
+\newcommand{\prodbeta}{\beta_{\Pi}}
+\newcommand{\nateta}{\eta_{\nat}}
+\newcommand{\natbeta}{\beta_{\nat}}
+\newcommand{\streambeta}{\beta_{\streamname}}
+\newcommand{\streameta}{\eta_{\streamname}}
+\newcommand{\poseta}{\eta_{\mathit{pos}}}
+\newcommand{\posbeta}{\beta_{\mathit{pos}}}
+\newcommand{\negeta}{\eta_{\mathit{neg}}}
+\newcommand{\negbeta}{\beta_{\mathit{neg}}}
+\newcommand{\receta}{\eta_{\mathit{\mu}}}
+\newcommand{\recbeta}{\beta_{\mathit{\mu}}}
+\newcommand{\coreceta}{\eta_{\mathit{\nu}}}
+\newcommand{\corecbeta}{\beta_{\mathit{\nu}}}
+
+\newcommand{\bool}{\mathbb{B}}
+\newcommand{\true}{\mathtt{true}}
+\newcommand{\false}{\mathtt{false}}
+\renewcommand{\neg}{\lnot \lnot}
+\newcommand{\nType}[1]{#1\mathrm{-Type}}
+\newcommand{\IsnType}[2]{\mathrm{Is-}#2\mathrm{-Type} (#1)}
+\newcommand{\Hset}{\nType{0}}
+\newcommand{\squash}[2]{||#1||_{#2}}
+\newcommand{\tr}[2]{\mathrm{tr}^{#1}_{#2}}
+\newcommand{\elimTr}[2]{\mathrm{ind}_{\squash{#1}{#2}}}
+\newcommand{\elimBool}{\mathrm{ind}_{\bool}}
+\newcommand{\iterNat}{\mathrm{iter}_{\nat}}
+\newcommand{\recNat}{\mathrm{rec}_{\nat}}
+\newcommand{\elimNat}{\mathrm{ind}_{\nat}}
+\newcommand{\pwEq}{==}
+\newcommand{\wFunext}{\mathrm{funext}_{weak}}
+\newcommand{\sFunext}{\mathrm{funext}_{strong}}
+\newcommand{\apD}{\mathrm{apD_{10}}}
+\newcommand{\IsEquiv}{\mathop{\mathrm{IsEquiv}}}
+\newcommand{\retractOf}{\mathop{\mathrm{retract}}}
+\newcommand{\IsContr}{\mathop{\mathrm{IsContr}}}
+
+
+\begin{document}
+
+\title{FunExt vs Weak FunExt}
+
+\author{Nicolas Tabareau}
+
+\maketitle
+
+
+For every $A:\Type$,  $B : A \rightarrow \Type$ and $f \ g : \forall x:A.
+B \ x$, we define pointwise equality as 
+
+$$ f \pwEq g := \forall x:A. f \ x = g \ x.$$
+
+\noindent
+The axiom of weak extensionality is stated as the existence of a function 
+
+$$
+\wFunext := \forall A (B : A \rightarrow \Type) (f \ g : \forall x:A,
+B \ x).  f == g \rightarrow f = g.
+$$
+
+\noindent
+Recall that the axiom of (strong) function extensionality is stated as
+the fact that the canonical map 
+%
+$$
+\apD : \forall A (B : A \rightarrow \Type) (f \ g : \forall x:A,
+B \ x).  f = g \rightarrow f == g.
+$$
+%
+is an equivalence
+%
+$$
+\sFunext := \forall A (B : A \rightarrow \Type) (f \ g : \forall x:A,
+B \ x). \IsEquiv (\apD \ A \ B \ f \ g).
+$$
+%
+It is clear that strong function extensionality implies weak function
+extensionality, but the converse is not obvious and even looks wrong.
+
+In this exercise, we show that weak function extensionality implies
+strong funextionality.
+
+
+\section*{Lemma 1} 
+Show that for every $A:\Type$  $B : A \rightarrow \Type$ and $f : \forall x:A. B\
+x$, the space
+$$\Sigma g : \forall x:A. B\ x \ \& \ f == g$$
+%
+is a retraction of the space
+$$\forall x:A.\Sigma y : B \ x \ \& \ f \ x = y.$$
+
+
+\noindent
+Recall that a retraction between two types $A$ and $B$ is given by
+$$\retractOf  A \ B := \Sigma f : A \rightarrow B \ \& \ \Sigma g : B \rightarrow A
+\ \& \ \forall x:A. g (f \ x) = x.$$
+%
+As usual, $\Sigma x: A \ \& \ B$ denotes the dependent sum, with first
+and second projections noted $.1$ and $.2$.
+
+\section*{Singleton are contractible} 
+
+Show that singletons are contractible, that is for every type $A$ and
+$a:A$, we have
+%
+$$\IsContr (\Sigma a' : A \ \& \ a = a')$$
+%
+where $\IsContr X := \Sigma x:X \ \& \ \forall x': X. x = x'$.
+
+\section*{Lemma 2}
+
+Show assuming $\wFunext$ that for every type $A$, $B : A
+\rightarrow \Type$ and $f : \forall x:A. B \ x$, we have
+ $$ \IsContr (\forall x:A. \ \Sigma y : B \ x \ \& \ f \ x = y).$$
+
+ \section*{Iscontr $\Rightarrow$ retract}
+
+ Show that if a type $B$ is contractible and $A$ is a retract of $B$,
+ then $A$ is contractible.
+
+ \section*{Lemma 3}
+
+ Show for every type $A$, $B : A
+\rightarrow \Type$  $f : \forall x:A. B \ x$ and assuming $w\! f : \wFunext$, that if 
+$$
+w\! f \ A \ B \ f \ f (\lambda x. \ \refl (f \ x)) = \refl f
+$$
+then 
+$$
+\forall (g : \forall x:A. B \ x)  (h: f == g), \apD (w\! f \ A \ B \ f \
+g \ h) = h.
+$$
+ 
+ \section*{Lemma 4}
+
+ Show that from any  $w\! f : \wFunext$, we can define $w\! f' : \wFunext$
+such that  
+$$
+w\! f' \ A \ B \ f \ f (\lambda x. \ \refl (f \ x)) = \refl f.
+$$
+%
+Conclude that
+$$
+\wFunext \rightarrow \sFunext.
+$$
+
+
+\end{document}
+
+\newpage
+
+\begin{figure*}
+\centerline{ \framebox{$
+\begin{array}{c}
+  \begin{array}{ccc}
+\mbox{\em context formers} & \qquad & \mbox{\em type formers}
+\\
+\\
+\seqr{\ctxemptyrule}
+     {}
+     {\wfctx{\emptyctx}}
+\qquad
+\seqr{\ctxconsrule}
+     {\Gamma \vdash A : \sort{n}}
+     {\wfctx{\Gamma, a : A}}
+&& 
+\seqr{\univrule}
+     {}
+     {\Gamma \vdash \sort{n} : \sort{n+1}}
+  \end{array}
+\\
+\\
+\mbox{\em axiom and conversion rules}
+\\
+\\
+\seqr{\axrule}
+     {\wfctx{\Gamma, a:A, \Gamma'}}
+     {\Gamma, a:A, \Gamma' \vdash a : A}
+\qquad
+\seqr{\convrule}
+     {\Gamma \vdash t : A \qquad \Gamma \vdash A \equiv B : \sort{n}}
+     {\Gamma \vdash t : B}
+\\
+\\
+\mbox{\em definitional equality}
+\\
+\\
+\seqr{\reflconvrule}
+     {\Gamma \vdash t : A}
+     {\Gamma \vdash t \equiv t : A}
+\qquad
+\seqr{\symconvrule}
+     {\Gamma \vdash t \equiv u : A}
+     {\Gamma \vdash u \equiv t : A}
+\qquad
+\seqr{\transconvrule}
+     {\Gamma \vdash t \equiv u : A \qquad \Gamma \vdash u \equiv v : A}
+     {\Gamma \vdash t \equiv v : A}
+\end{array}
+$
+}}
+\caption{Bare type theory}
+\label{fig:bare}
+\end{figure*}
+
+\begin{figure*}
+  \centerline{\framebox{$
+\begin{array}{c}
+\mbox{\em type former}
+\\
+\\
+\seqr{}
+     {\Gamma \vdash \epsilon : \mkeq{A}{\reflterm{\sort{n}}}{B} \qquad \Gamma \vdash t : A \qquad \Gamma \vdash u : B}
+     {\Gamma \vdash \mkeq{t}{\epsilon}{u} : \sort{n}}
+\\
+\\
+  \begin{array}{ccc}
+\mbox{\em introduction rule} &\qquad& \mbox{\em elimination rule}
+\\
+\\
+\seqr{}
+     {\Gamma, \dimdeclare{i} \vdash t : A}
+     {\Gamma \vdash \lameq{i}{t} : \mkeq{\bpsubstctx{\Gamma}{i}{t}}{\lameq{i}{A}}{\epsubstctx{\Gamma}{i}{t}}}
+&&
+\seqr{}
+     {\Gamma \vdash v : \mkeq{t}{\epsilon}{u}\qquad \dimvalid{i}{\Gamma}}
+     {\Gamma \vdash \appi{v}{i} : \appi{\epsilon}{i}}
+\\
+\\
+\mbox{\em computational rule} &\qquad& \mbox{\em observational rule}
+\\
+\\
+\seqr{}
+     {\Gamma, i \vdash t : A \qquad \dimvalid{j}{\Gamma}}
+     {\Gamma \vdash \appi{(\lameq{i}{t})}{j} \reduce \Sub{t}{i}{j} : \Sub{A}{i}{j}}
+&&
+\seqr{}
+     {\Gamma \vdash p : \mkeq{t}{\epsilon}{u} \qquad \mbox{$i$ fresh}}
+     {\Gamma \vdash \lameq{i}{(\appi{p}{i})} \equiv p : \mkeq{t}{\epsilon}{u}}
+  \end{array}
+\end{array}
+$
+}}
+\caption{Typing rules and computational rules of cubical equality}
+\label{fig:equality}
+\end{figure*}
+
+\begin{figure*}
+\centerline{ \framebox{$
+\begin{array}{llll}
+\bpsubstctx{\Gamma}{i}{x} & \defeq & x\\
+\bpsubstctx{\Gamma}{i}{(\lameq{j}{t})} & \defeq & \lameq{j}{(\bpsubstctx{\Gamma,\dimdeclare{i}}{i}{t})} \\
+\bpsubstctx{\Gamma}{i}{(\appi{t}{j})} & \defeq & \appi{(\bpsubstctx{\Gamma}{i}{t})}{j} & \mbox{$i \neq j$}\\
+\bpsubstctx{\Gamma}{i}{(\appi{t}{i})} & \defeq & u & \mbox{when $\Gamma \vdash \bpsubstctx{\Gamma}{i}{t}:\mkeq{u}{\epsilon}{v}$}\\
+\bpsubstctx{\Gamma}{i}{(\mklam{a}{A}{u})} & \defeq  & \mklam{a}{\bpsubstctx{\Gamma}{i}{A}}{\bpsubstctx{\Gamma,a:A}{i}{u}}\\
+\bpsubstctx{\Gamma}{i}{(\mkprod{a}{A}{B})} & \defeq & \mkprod{a}{\bpsubstctx{\Gamma}{i}{A}}{\bpsubstctx{\Gamma,a:A}{i}{B}}\\
+\bpsubstctx{\Gamma}{i}{(\mkapp{v}{t})} & \defeq     & \mkapp{\bpsubstctx{\Gamma}{i}{v}}{\bpsubstctx{\Gamma}{i}{t}}\\
+\\
+\epsubstctx{\Gamma}{i}{x} & \defeq & x\\
+\epsubstctx{\Gamma}{i}{(\lameq{j}{t})} & \defeq & \lameq{j}{(\epsubstctx{\Gamma,\dimdeclare{i}}{i}{t})} \\
+\epsubstctx{\Gamma}{i}{(\appi{t}{j})} & \defeq & \appi{(\epsubstctx{\Gamma}{i}{t})}{j} & \mbox{$i \neq j$}\\
+\epsubstctx{\Gamma}{i}{(\appi{t}{i})} & \defeq & v & \mbox{when $\Gamma \vdash \epsubstctx{\Gamma}{i}{t}:\mkeq{u}{\epsilon}{v}$}\\
+\epsubstctx{\Gamma}{i}{(\mklam{a}{A}{u})} & \defeq  & \mklam{a}{\epsubstctx{\Gamma}{i}{A}}{\epsubstctx{\Gamma,a:A}{i}{u}}\\
+\epsubstctx{\Gamma}{i}{(\mkprod{a}{A}{B})} & \defeq & \mkprod{a}{\epsubstctx{\Gamma}{i}{A}}{\epsubstctx{\Gamma,a:A}{i}{B}}\\
+\epsubstctx{\Gamma}{i}{(\mkapp{v}{t})} & \defeq     & \mkapp{\epsubstctx{\Gamma}{i}{v}}{\epsubstctx{\Gamma}{i}{t}}\\
+\end{array}
+$
+}}
+\caption{Computation of the endpoints of an equality}
+\label{fig:endpoints}
+\end{figure*}
+
+\begin{figure*}
+\centerline{ \framebox{$
+\begin{array}{c}
+\mbox{\em type former}
+\\
+\\
+\seqr{}
+     {\Gamma \vdash A : \sort{n_1} \qquad \Gamma, a : A \vdash B : \sort{n_2}}
+     {\Gamma \vdash \mkprod{a}{A}{B} : \sort{\prodsort{n_1}{n_2}}}
+\\
+\\
+  \begin{array}{ccc}
+\mbox{\em introduction rule} &\qquad& \mbox{\em elimination rule}
+\\
+\\
+\seqr{}
+     {\Gamma, a : A \vdash u : B}
+     {\Gamma \vdash \mklam{a}{A}{u} : \mkprod{a}{A}{B}}
+&&
+\seqr{}
+     {\Gamma \vdash v : \mkprod{a}{A}{B} \qquad \Gamma \vdash t : A}
+     {\Gamma \vdash \mkapp{v}{t} : \Sub{B}{a}{t}}
+\\
+\\
+\mbox{\em computational rule} &\qquad& \mbox{\em observational rule}
+\\
+\\
+\seqr{\prodbeta}
+     {\Gamma, a : A \vdash u : B \qquad \Gamma \vdash t : A}
+     {\Gamma \vdash \mkapp{(\mklam{a}{A}{u})}{t} \reduce \Sub{u}{a}{t} : \Sub{B}{a}{t}}
+&&
+\seqr{\prodeta}
+     {\Gamma \vdash v : \mkprod{a}{A}{B}}
+     {\Gamma \vdash \mklam{a}{A}{\mkapp{v}{a}} \reduce v : \mkprod{a}{A}{B}}
+  \end{array}
+\end{array}
+$
+}}
+\caption{Typing and computational rules for $\Pi$}
+\label{fig:prodtypetheory}
+\end{figure*}
+
+\iffalse
+\begin{figure*}
+\centerline{\framebox{$
+\begin{array}{c}
+\mbox{\em type former}
+\\
+\\
+\seqr{}
+     {\Gamma \vdash A : \sort{n_1} \qquad \Gamma, a : A \vdash B : \sort{n_2}}
+     {\Gamma \vdash \mksig{a}{A}{B} : \sort{\sigsort{n_1}{n_2}}}
+\\
+\\
+  \begin{array}{ccc}
+\mbox{\em introduction rule} &\qquad& \mbox{\em elimination rules}
+\\
+\\
+\seqr{}
+     {\Gamma \vdash t : A \qquad \Gamma \vdash u : \Sub{B}{a}{t}}
+     {\Gamma \vdash \mkpair{t}{u} : \mksig{a}{A}{B}}
+&&
+\seqr{}
+     {\Gamma \vdash v : \mksig{a}{A}{B}}
+     {\Gamma \vdash \mkfst{v} : A}
+\qquad
+\seqr{}
+     {\Gamma \vdash v : \mksig{a}{A}{B}}
+     {\Gamma \vdash \mksnd{v} : \Sub{B}{a}{\mkfst{v}}}
+\\
+\\
+\mbox{\em computational rules} &\qquad& \mbox{\em observational rule}
+\\
+\\
+\seqr{\sigbeta^1}
+     {\Gamma \vdash t : A \qquad \Gamma \vdash u : \Sub{B}{a}{t}}
+     {\Gamma \vdash \mkfst{(\mkpair{t}{u})} \reduce t : A}
+\qquad
+\seqr{\sigbeta^2}
+     {\Gamma \vdash t : A \qquad \Gamma \vdash u : \Sub{B}{a}{t}}
+     {\Gamma \vdash \mksnd{(\mkpair{t}{u})} \reduce u : \Sub{B}{a}{t}}
+&&
+\seqr{\sigeta}
+     {\Gamma \vdash v : \mksig{a}{A}{B}}
+     {\Gamma \vdash \mkpair{\mkfst{v}}{\mksnd{v}} \reduce v : \mksig{a}{A}{B}}
+  \end{array}
+\end{array}
+$
+}}
+\caption{Typing and computational rules for $\Sigma$}
+\label{fig:sigmatypetheory}
+\end{figure*}
+\fi
+
+\begin{figure*}
+\centerline{\framebox{$
+\begin{array}{c}
+\mbox{\em type former}
+\\
+\\
+\seqr{}
+     {\Gamma \vdash A : \sort{n}}
+     {\Gamma \vdash \stream{A} : \sort{n}}
+\\
+\\
+\mbox{\em introduction rule}
+\\
+\\
+\seqr{}
+     {\Gamma \vdash C : \sort{n} \qquad \Gamma, c : C \vdash t : A \qquad \Gamma, s : \mkimp{C}{\stream{A}}, c : C \vdash u : \stream{A} \qquad \Gamma \vdash v : C}
+     {\Gamma \vdash \mkstream{c}{t}{s}{u}{v} : \stream{\Sub{A}{c}{v}}}
+\\
+\\
+\mbox{\em elimination rules}
+\\
+\\
+\seqr{}
+     {\Gamma \vdash A : \sort{n} \qquad \Gamma \vdash t : \stream{A}}
+     {\Gamma \vdash \head{t} : A}
+\qquad
+\seqr{}
+     {\Gamma \vdash A : \sort{n} \qquad \Gamma \vdash t : \stream{A}}
+     {\Gamma \vdash \tail{t} : \stream{}}
+\\
+\\
+\mbox{\em reduction rules}
+\\
+\\
+\seqr{\streambeta^{\headname}}
+     {\Gamma \vdash C : \sort{n} \qquad \Gamma, c : C \vdash t : A \qquad \Gamma, s : \mkimp{C}{\stream{A}}, c : C \vdash u : \stream{A} \qquad \Gamma \vdash v : C}
+     {\Gamma \vdash \head{\mkstream{c}{t}{s}{u}{v}} \equiv \Sub{t}{c}{v} : \Sub{A}{c}{v}}
+\\
+\\
+\seqr{\streambeta^{\tailname}}
+     {\Gamma \vdash C : \sort{n} \qquad \Gamma, c : C \vdash t : A \qquad \Gamma, s : \mkimp{C}{\stream{A}}, c : C \vdash u : \stream{A} \qquad \Gamma \vdash v : C}
+     {\Gamma \vdash \tail{\mkstream{c}{t}{s}{u}{v}} \equiv \Sub{\Sub{u}{c}{v}}{s\,x}{\mkstream{c}{t}{s}{u}{x}} : \stream{A}}
+\\
+\\
+\mbox{\em observational rule}
+\\
+\\
+\seqr{\streameta}
+     {\Gamma \vdash C : \sort{n} \qquad \Gamma, a : C \vdash t : \stream{A}}
+     {\Gamma \vdash \mkstream{a}{\head{t}}{s}{\tail{t}}{a} \equiv t : \stream{A}}
+\end{array}
+$
+}}
+\caption{Typing and computational rules for streams}
+\label{fig:streamtypetheory}
+\end{figure*}
+
