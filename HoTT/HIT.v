@@ -1,6 +1,6 @@
 Set Universe Polymorphism.
 
-Require Import HoTT MyInt. 
+From CASS.HoTT Require Import HoTT MyInt. 
 
 Definition apD {A} {B : A -> Type} (f:forall x, B x) {x y:A} (p:x = y) :
   p # (f x) = f y
