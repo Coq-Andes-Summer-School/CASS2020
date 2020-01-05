@@ -819,16 +819,148 @@ Abort.
 *)
 
 
+(** * Excercises
 
+Take an existing proof (for instance,
+[sf/plf/Typechecking/type_checking_sound]) and:
 
+1) Structure the proof so that every subgoal has
+   its bullet (except for when there is only one
+   subgoal).
 
+2) If not using ssreflect's tactics, when
+   possible, replace Coq's tactics by ssreflect's.
+
+3) Identify explicit namings and try to remove
+   them using Ltac or Mtac2. Below is a list of
+   Mtac2 tactics you might find useful.
+
+4) Refactor the proof to avoid code duplication.
+
+5) Reflect: What were the challenges you faced?
+   Are you missing tactics/tools to write the
+   proof as you like?
+
+Hint: perhaps you want to start bottom-up,
+starting from the leaves of the proof.
+*)
 
 
 
 (** * Supplementary material *)
 
+Definition open {A} (x: A) : M Type :=
+  (mfix1 go (d: dyn) : M Type :=
+    mmatch d return M Type with
+        | [? T1 T2 f] @Dyn (T1 -> T2) f =>
+          e <- M.evar T1;
+          go (Dyn (f e))
+        | [? T1 T2 f] @Dyn (forall x:T1, T2 x) f =>
+          e <- M.evar T1;
+          go (Dyn (f e))
+        | [? p] @Dyn Prop p => @M.ret Type p
+        | [? p] @Dyn Type p => M.ret p
+   end
+  )%MC (Dyn x).
 
 
+Definition RemoveEvars {A} (value: A) : Exception. constructor. Qed.
+
+Definition open_and_match {T} (c: T) : dyn -> M bool:=
+  (mfix1 go (d : dyn) : M bool :=
+    mmatch d return M bool with
+    | [? T1 T2 f] @Dyn (forall x:T1, T2 x) f =>
+        M.nu Generate mNone (fun x: T1=>go (Dyn (f x)))
+    | [? T' x] @Dyn T' x =>
+      mtry
+        T <- open c;
+        b <- M.bunify T T' UniCoq;
+        M.raise (RemoveEvars b)
+      with [? b] RemoveEvars b => M.ret b : M bool end
+    end)%MC.
+
+(** [intros_until patt] takes a "pattern" (a
+function taking the unknowns of the term) and
+introduces all of the hypotheses until it reaches
+one that matches. *) 
+Definition intros_until {A} (patt : A) : tactic :=
+    mfix0 f : gtactic unit:=
+      match_goal with
+      | [[? T P |- forall x:T, P x ]] =>
+        mif M.nu Generate mNone (fun x : T =>open_and_match patt (Dyn x)) then
+          idtac
+        else
+          introsn 1 &> f
+      end.
+
+Example ex_intros_until: forall n, (False -> {p : nat & p = n}) -> True.
+MProof.
+  intros_until (fun x y=> {p: x & y p}).
+Abort.
+
+Definition find_concl {T} (c: T)  : mlist Hyp -> M dyn :=
+  (mfix1 f (l : mlist Hyp) : M dyn :=
+    match l with
+    | (@ahyp A' x d) :m: l' =>
+      mif open_and_match c (Dyn x) then
+        M.ret (Dyn x)
+      else f l'
+    | _ => M.raise NotFound
+    end)%MC.
+
+Definition select_concl {T: Type} (c: T) : M dyn :=
+  M.hyps >>= find_concl c.
+
+(** [select_and patt f] calls continuation [f] with
+the hypothesis that matches the [patt]ern. *)
+Definition select_and {T: Type} (patt: T) (f: forall {A}, A -> tactic) : tactic :=
+  (d <- select_concl patt;
+  dcase d as e in f e)%tactic.
+
+Example ex_find_concl: forall n, (False -> {p : nat & p = n}) -> True.
+MProof.
+  intros.
+  select_and (fun x y=> {p: x & y p}) (fun _ x=>M.print_term x;; idtac)%tactic.
+Abort.
+
+
+Definition generalize_matching {T} (P: T) : tactic :=
+  select_and P (@T.move_back).
+
+Definition name_it : forall {T} (P: T) (n: unit -> unit), tactic :=
+  (fun {T} P n=>M.get_binder_name n >>=
+      fun k=>(generalize_matching P &> T.intro_simpl (TheName k)))%tactic. 
+
+Notation "'rename' P 'as' n" := (name_it P (fun n=>n)) (at level 0).
+
+Example ex_rename: forall n, (False -> {p : nat & p = n}) -> True.
+MProof.
+  intros.
+  rename (fun x y=> {p: x & y p}) as H.
+Abort.
+
+(** These are just shortcuts for common tactics *)
+Definition inversion1 : tactic :=
+  (A <- M.evar _; intro_base Generate (fun x:A=>inversion x))%tactic.
+
+Definition rewrite1r {A} (x: A) : tactic :=
+  trewrite RightRewrite [m: Dyn x].
+
+Definition rewrite1l {A} (x: A) : tactic :=
+  trewrite LeftRewrite [m: Dyn x].
+
+Definition rewrite1r_in {A B} (eq: A) (hyp: B) : tactic :=
+  trewrite_in RightRewrite eq [m: Dyn hyp].
+
+Definition rewrite1l_in {A B} (eq: A) (hyp: B) : tactic :=
+  trewrite_in LeftRewrite eq [m: Dyn hyp].
+
+
+
+(** * Not covered this time *)
+
+(** The following is raw material not covered in
+the current course. *)
 
 
 (** We will now move to a different kind of
@@ -929,10 +1061,6 @@ Definition to_aexp_lying_proof (n: nat) : M {a: aexp & [[a]]_n = n} :=
   end.
 
 Definition test_nat_w_proof_mtac2 := ltac:(mrun (to_aexp_lying_proof 2)).
-
-Definition rewrite1r {A} (x: A) : tactic := trewrite RightRewrite [m: Dyn x].
-
-Definition rewrite1l {A} (x: A) : tactic := trewrite LeftRewrite [m: Dyn x].
 
 Obligation Tactic := simpl; intros.
 
