@@ -2,7 +2,7 @@ Set Universe Polymorphism.
 
 From Coq Require Import ssreflect ssrfun ssrbool.
 
-Require Import HoTT.
+From CASS.HoTT Require Import HoTT.
 
 Definition pw_eq A (B : A -> Type) (f g : forall x, B x) := forall x, f x = g x.
 

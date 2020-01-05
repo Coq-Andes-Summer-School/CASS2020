@@ -1,5 +1,5 @@
 Set Universe Polymorphism.
-Require Import HoTT.
+From CASS.HoTT Require Import HoTT.
 (* ** Positive Numbers *)
 
 Inductive Pos : Type :=
