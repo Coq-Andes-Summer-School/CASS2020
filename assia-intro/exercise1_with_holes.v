@@ -52,6 +52,11 @@ Fixpoint depth (t : tree) : nat :=  (* your definition here *)
 
 (* Test your depth function *)
 
+(* State and prove that the size of a binary_tree is always positive. *)
+Lemma lt0_size (t : tree) :  (* your statement here *).
+Proof.
+(* your proof here *)
+Qed.
 
 (* State and prove that the height is smaller than the number of nodes. *)
 Lemma leq_depth_size  (t : tree) : (* your statement here *).
