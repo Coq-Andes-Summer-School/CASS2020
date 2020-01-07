@@ -714,8 +714,8 @@ MProof.
      except OPlus, OMult do solve_rewriting.
 
 (* (Note: nothing prevents us here to screw up the
-order, we need extra support from Coq's bullets to
-solve this) *)
+order, we need some way of encoding in the goal
+the case we are in.) *)
   - ✓ aexp &> ssrcase &>
        except ANum do solve_rewriting. 
     ✓ nat &> ssrcase &> solve_rewriting.
@@ -797,7 +797,9 @@ Abort.
 |   + More automation but less control?          |
 |                                                |
 | - My take: controled automation with custom    |
-|            tactics.                            |
+|            tactics and checks.                 |
+|                                                |
+| - Checks might get expensive though!           |
 |                                                |
 | - Tactic languages today have limitations:     |
 |   + Ltac: inconsistent semantics, limited      |
@@ -819,21 +821,54 @@ Abort.
 *)
 
 
+(** * Excercises
+
+Take an existing proof (for instance,
+[sf/plf/Typechecking/type_checking_sound]) and:
+
+1) Structure the proof so that every subgoal has
+   its bullet (except for when there is only one
+   subgoal).
+
+2) If not using ssreflect's tactics, when
+   possible, replace Coq's tactics by ssreflect's.
+
+3) Identify explicit namings and try to remove
+   them using Ltac or Mtac2. Below is a list of
+   Mtac2 tactics you might find useful.
+
+4) Refactor the proof to avoid code duplication.
+
+5) Reflect: What were the challenges you faced?
+   Are you missing tactics/tools to write the
+   proof as you like?
+
+Hint: perhaps you want to start bottom-up,
+starting from the leaves of the proof.
+
+If you want to use Mtac2, in the directory you
+will find a modified version of Software
+Foundation that is compatible with Mtac2. In it,
+there is a file [Mtac2Tactics.v] that contains
+many useful Mtac2 definitions.
+
+As an example, you can take a look at the last
+theorem in [PE.v], which is a modified version of
+the theorem [pe_com_complete] defined in the same
+file. *)
 
 
 
 
+(** * Not covered this time *)
 
-
-(** * Supplementary material *)
-
-
-
+(** The following is raw material not covered in
+the current course. *)
 
 
 (** We will now move to a different kind of
 tactics: we will take a natural number and convert
-it to a *)
+it to an [aexp]: *)
 
 Ltac to_aexp n :=
   lazymatch n with
@@ -885,42 +920,46 @@ Print test_nat_w_proof.
 Import M.
 Import M.notations.
 
+(** We can take advantage of Mtac2's types to be
+sure we do not screw up anything. *)
 Definition to_aexp : nat -> M aexp :=
   mfix1 to_aexp (n: nat) : M aexp := 
   mmatch n with
-  | 0 => ret (ANum 0)
-  | [? n'] S n' =>
+  | 0 =n> ret (ANum 0) (* the =n> means "no reduction, just match" *)
+  | [? n'] S n' =n>
     res <- to_aexp n';
     match res with
     | ANum x => M.ret (ANum (S x))
     | _ => M.failwith "Can't deal with it"
     end
-  | [? n m] n + m =>
+  | [? n m] n + m =n>
     resn <- to_aexp n;
     resm <- to_aexp m;
     ret (ABinOp OPlus resn resm)
-  | [? n m] n - m =>
+  | [? n m] n - m =n>
     resn <- to_aexp n;
     resm <- to_aexp m;
     ret (ABinOp OMinus resn resm)
-  | [? n m] n * m =>
+  | [? n m] n * m =n>
     resn <- to_aexp n;
     resm <- to_aexp m;
     ret (ABinOp OMult resn resm)
+  | _ => failwith "Not supported"
   end.
 
-(** It is too typed: it fails because we do not
-have a proof for every nat. *)
+
+(** It is too typed though: it fails because we do
+not have a proof _for every nat_. *)
 Fail Definition to_aexp_w_proof (n: nat)
   : M {a: aexp & [[a]]_n = n} :=
   a <- to_aexp n;
   ret (existT _ a eq_refl).
 
+(** We can cheat adding a coercion *)
 Definition to_eq {A} {x y : A} (meq : x =m= y) : x = y :=
   match meq in _ =m= y return x = y with
   | meq_refl => eq_refl
   end.
-Coercion to_eq: meq >-> eq.
 
 Definition to_aexp_lying_proof (n: nat) : M {a: aexp & [[a]]_n = n} :=
   a <- to_aexp n;
@@ -928,14 +967,19 @@ Definition to_aexp_lying_proof (n: nat) : M {a: aexp & [[a]]_n = n} :=
   | n => [pf] ret (existT _ a (to_eq pf))
   end.
 
-Definition test_nat_w_proof_mtac2 := ltac:(mrun (to_aexp_lying_proof 2)).
-
-Definition rewrite1r {A} (x: A) : tactic := trewrite RightRewrite [m: Dyn x].
-
-Definition rewrite1l {A} (x: A) : tactic := trewrite LeftRewrite [m: Dyn x].
+Definition test_nat_w_proof_mtac2 :=
+  ltac:(mrun (to_aexp_lying_proof 2)).
 
 Obligation Tactic := simpl; intros.
 
+Definition rewrite1r {A} (x: A) : tactic :=
+  trewrite RightRewrite [m: Dyn x].
+
+Definition rewrite1l {A} (x: A) : tactic :=
+  trewrite LeftRewrite [m: Dyn x].
+
+(** Alternatively, we can add the proof in the
+[to_aexp] tactic: *)
 Program
 Definition to_aexp_w_proof : forall n:nat, M {a:aexp & [[a]]_n = n} :=
   mfix1 to_aexp (n: nat) : M {a:aexp & [[a]]_n = n} :=
@@ -991,37 +1035,19 @@ MProof.
   reflexivity.
 Qed.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 (*! Closing words  *)
-(* 
-   This is just a little demo of what we can do thanks to
-   having our tactics coded withing the rich type system of
-   Coq. In the real implementation of Mtac2 Dependent types
-   helped us ensure such invariants, remove dead code, and
-   greatly factorize code. And we are not yet done!
+(**
+
+This is just a little demo of what we can do
+thanks to having our tactics coded withing the
+rich type system of Coq. In the real
+implementation of Mtac2 Dependent types helped us
+ensure such invariants, remove dead code, and
+greatly factorize code. And we are not yet done!
 *)
 
 
-(*
-      _______ _     _ _______ __   _ _     _ _______   /
-         |    |_____| |_____| | \  | |____/  |______  / 
-         |    |     | |     | |  \_| |    \_ ______| .  
-                                                        
-*)
 
 (* Local Variables: *)
-(* company-coq-local-symbols: (("[[" . ?⟦) ("]]" . ?⟧) ("_n" . ?ₙ) ("&>" . ?⊳) ("[[?" . (?⟦ (Br . Bl) ?\?)) ("|1>" . (?⊳ (Br . Bl) ?₁)) ("l>" . (?⊳ (Br . Bl) ?ₗ))) *)
+(* company-coq-local-symbols: (("[[" . ?⟦) ("]]" . ?⟧) ("_n" . ?ₙ) ("&>" . ?⊳) ("[[?" . (?⟦ (Br . Bl) ?\?)) ("|1>" . (?⊳ (Br . Bl) ?₁)) ("l>" . (?⊳ (Br . Bl) ?ₗ)) ) *)
 (* End: *)
