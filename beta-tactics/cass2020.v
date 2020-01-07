@@ -714,8 +714,8 @@ MProof.
      except OPlus, OMult do solve_rewriting.
 
 (* (Note: nothing prevents us here to screw up the
-order, we need extra support from Coq's bullets to
-solve this) *)
+order, we need some way of encoding in the goal
+the case we are in.) *)
   - ✓ aexp &> ssrcase &>
        except ANum do solve_rewriting. 
     ✓ nat &> ssrcase &> solve_rewriting.
@@ -797,7 +797,9 @@ Abort.
 |   + More automation but less control?          |
 |                                                |
 | - My take: controled automation with custom    |
-|            tactics.                            |
+|            tactics and checks.                 |
+|                                                |
+| - Checks might get expensive though!           |
 |                                                |
 | - Tactic languages today have limitations:     |
 |   + Ltac: inconsistent semantics, limited      |
@@ -843,117 +845,18 @@ Take an existing proof (for instance,
 
 Hint: perhaps you want to start bottom-up,
 starting from the leaves of the proof.
-*)
 
+If you want to use Mtac2, in the directory you
+will find a modified version of Software
+Foundation that is compatible with Mtac2. In it,
+there is a file [Mtac2Tactics.v] that contains
+many useful Mtac2 definitions.
 
+As an example, you can take a look at the last
+theorem in [PE.v], which is a modified version of
+the theorem [pe_com_complete] defined in the same
+file. *)
 
-(** * Supplementary material *)
-
-Definition open {A} (x: A) : M Type :=
-  (mfix1 go (d: dyn) : M Type :=
-    mmatch d return M Type with
-        | [? T1 T2 f] @Dyn (T1 -> T2) f =>
-          e <- M.evar T1;
-          go (Dyn (f e))
-        | [? T1 T2 f] @Dyn (forall x:T1, T2 x) f =>
-          e <- M.evar T1;
-          go (Dyn (f e))
-        | [? p] @Dyn Prop p => @M.ret Type p
-        | [? p] @Dyn Type p => M.ret p
-   end
-  )%MC (Dyn x).
-
-
-Definition RemoveEvars {A} (value: A) : Exception. constructor. Qed.
-
-Definition open_and_match {T} (c: T) : dyn -> M bool:=
-  (mfix1 go (d : dyn) : M bool :=
-    mmatch d return M bool with
-    | [? T1 T2 f] @Dyn (forall x:T1, T2 x) f =>
-        M.nu Generate mNone (fun x: T1=>go (Dyn (f x)))
-    | [? T' x] @Dyn T' x =>
-      mtry
-        T <- open c;
-        b <- M.bunify T T' UniCoq;
-        M.raise (RemoveEvars b)
-      with [? b] RemoveEvars b => M.ret b : M bool end
-    end)%MC.
-
-(** [intros_until patt] takes a "pattern" (a
-function taking the unknowns of the term) and
-introduces all of the hypotheses until it reaches
-one that matches. *) 
-Definition intros_until {A} (patt : A) : tactic :=
-    mfix0 f : gtactic unit:=
-      match_goal with
-      | [[? T P |- forall x:T, P x ]] =>
-        mif M.nu Generate mNone (fun x : T =>open_and_match patt (Dyn x)) then
-          idtac
-        else
-          introsn 1 &> f
-      end.
-
-Example ex_intros_until: forall n, (False -> {p : nat & p = n}) -> True.
-MProof.
-  intros_until (fun x y=> {p: x & y p}).
-Abort.
-
-Definition find_concl {T} (c: T)  : mlist Hyp -> M dyn :=
-  (mfix1 f (l : mlist Hyp) : M dyn :=
-    match l with
-    | (@ahyp A' x d) :m: l' =>
-      mif open_and_match c (Dyn x) then
-        M.ret (Dyn x)
-      else f l'
-    | _ => M.raise NotFound
-    end)%MC.
-
-Definition select_concl {T: Type} (c: T) : M dyn :=
-  M.hyps >>= find_concl c.
-
-(** [select_and patt f] calls continuation [f] with
-the hypothesis that matches the [patt]ern. *)
-Definition select_and {T: Type} (patt: T) (f: forall {A}, A -> tactic) : tactic :=
-  (d <- select_concl patt;
-  dcase d as e in f e)%tactic.
-
-Example ex_find_concl: forall n, (False -> {p : nat & p = n}) -> True.
-MProof.
-  intros.
-  select_and (fun x y=> {p: x & y p}) (fun _ x=>M.print_term x;; idtac)%tactic.
-Abort.
-
-
-Definition generalize_matching {T} (P: T) : tactic :=
-  select_and P (@T.move_back).
-
-Definition name_it : forall {T} (P: T) (n: unit -> unit), tactic :=
-  (fun {T} P n=>M.get_binder_name n >>=
-      fun k=>(generalize_matching P &> T.intro_simpl (TheName k)))%tactic. 
-
-Notation "'rename' P 'as' n" := (name_it P (fun n=>n)) (at level 0).
-
-Example ex_rename: forall n, (False -> {p : nat & p = n}) -> True.
-MProof.
-  intros.
-  rename (fun x y=> {p: x & y p}) as H.
-Abort.
-
-(** These are just shortcuts for common tactics *)
-Definition inversion1 : tactic :=
-  (A <- M.evar _; intro_base Generate (fun x:A=>inversion x))%tactic.
-
-Definition rewrite1r {A} (x: A) : tactic :=
-  trewrite RightRewrite [m: Dyn x].
-
-Definition rewrite1l {A} (x: A) : tactic :=
-  trewrite LeftRewrite [m: Dyn x].
-
-Definition rewrite1r_in {A B} (eq: A) (hyp: B) : tactic :=
-  trewrite_in RightRewrite eq [m: Dyn hyp].
-
-Definition rewrite1l_in {A B} (eq: A) (hyp: B) : tactic :=
-  trewrite_in LeftRewrite eq [m: Dyn hyp].
 
 
 
@@ -965,7 +868,7 @@ the current course. *)
 
 (** We will now move to a different kind of
 tactics: we will take a natural number and convert
-it to a *)
+it to an [aexp]: *)
 
 Ltac to_aexp n :=
   lazymatch n with
@@ -1017,42 +920,46 @@ Print test_nat_w_proof.
 Import M.
 Import M.notations.
 
+(** We can take advantage of Mtac2's types to be
+sure we do not screw up anything. *)
 Definition to_aexp : nat -> M aexp :=
   mfix1 to_aexp (n: nat) : M aexp := 
   mmatch n with
-  | 0 => ret (ANum 0)
-  | [? n'] S n' =>
+  | 0 =n> ret (ANum 0) (* the =n> means "no reduction, just match" *)
+  | [? n'] S n' =n>
     res <- to_aexp n';
     match res with
     | ANum x => M.ret (ANum (S x))
     | _ => M.failwith "Can't deal with it"
     end
-  | [? n m] n + m =>
+  | [? n m] n + m =n>
     resn <- to_aexp n;
     resm <- to_aexp m;
     ret (ABinOp OPlus resn resm)
-  | [? n m] n - m =>
+  | [? n m] n - m =n>
     resn <- to_aexp n;
     resm <- to_aexp m;
     ret (ABinOp OMinus resn resm)
-  | [? n m] n * m =>
+  | [? n m] n * m =n>
     resn <- to_aexp n;
     resm <- to_aexp m;
     ret (ABinOp OMult resn resm)
+  | _ => failwith "Not supported"
   end.
 
-(** It is too typed: it fails because we do not
-have a proof for every nat. *)
+
+(** It is too typed though: it fails because we do
+not have a proof _for every nat_. *)
 Fail Definition to_aexp_w_proof (n: nat)
   : M {a: aexp & [[a]]_n = n} :=
   a <- to_aexp n;
   ret (existT _ a eq_refl).
 
+(** We can cheat adding a coercion *)
 Definition to_eq {A} {x y : A} (meq : x =m= y) : x = y :=
   match meq in _ =m= y return x = y with
   | meq_refl => eq_refl
   end.
-Coercion to_eq: meq >-> eq.
 
 Definition to_aexp_lying_proof (n: nat) : M {a: aexp & [[a]]_n = n} :=
   a <- to_aexp n;
@@ -1060,10 +967,19 @@ Definition to_aexp_lying_proof (n: nat) : M {a: aexp & [[a]]_n = n} :=
   | n => [pf] ret (existT _ a (to_eq pf))
   end.
 
-Definition test_nat_w_proof_mtac2 := ltac:(mrun (to_aexp_lying_proof 2)).
+Definition test_nat_w_proof_mtac2 :=
+  ltac:(mrun (to_aexp_lying_proof 2)).
 
 Obligation Tactic := simpl; intros.
 
+Definition rewrite1r {A} (x: A) : tactic :=
+  trewrite RightRewrite [m: Dyn x].
+
+Definition rewrite1l {A} (x: A) : tactic :=
+  trewrite LeftRewrite [m: Dyn x].
+
+(** Alternatively, we can add the proof in the
+[to_aexp] tactic: *)
 Program
 Definition to_aexp_w_proof : forall n:nat, M {a:aexp & [[a]]_n = n} :=
   mfix1 to_aexp (n: nat) : M {a:aexp & [[a]]_n = n} :=
@@ -1119,37 +1035,19 @@ MProof.
   reflexivity.
 Qed.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 (*! Closing words  *)
-(* 
-   This is just a little demo of what we can do thanks to
-   having our tactics coded withing the rich type system of
-   Coq. In the real implementation of Mtac2 Dependent types
-   helped us ensure such invariants, remove dead code, and
-   greatly factorize code. And we are not yet done!
+(**
+
+This is just a little demo of what we can do
+thanks to having our tactics coded withing the
+rich type system of Coq. In the real
+implementation of Mtac2 Dependent types helped us
+ensure such invariants, remove dead code, and
+greatly factorize code. And we are not yet done!
 *)
 
 
-(*
-      _______ _     _ _______ __   _ _     _ _______   /
-         |    |_____| |_____| | \  | |____/  |______  / 
-         |    |     | |     | |  \_| |    \_ ______| .  
-                                                        
-*)
 
 (* Local Variables: *)
-(* company-coq-local-symbols: (("[[" . ?⟦) ("]]" . ?⟧) ("_n" . ?ₙ) ("&>" . ?⊳) ("[[?" . (?⟦ (Br . Bl) ?\?)) ("|1>" . (?⊳ (Br . Bl) ?₁)) ("l>" . (?⊳ (Br . Bl) ?ₗ))) *)
+(* company-coq-local-symbols: (("[[" . ?⟦) ("]]" . ?⟧) ("_n" . ?ₙ) ("&>" . ?⊳) ("[[?" . (?⟦ (Br . Bl) ?\?)) ("|1>" . (?⊳ (Br . Bl) ?₁)) ("l>" . (?⊳ (Br . Bl) ?ₗ)) ) *)
 (* End: *)
