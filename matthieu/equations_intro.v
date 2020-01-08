@@ -128,6 +128,10 @@ Program Definition vhead_eq {A} {n} (v : vec A (S n)) : A :=
 
   In Coq!
 
+  %\center{\texttt{equations\_intro.v}}%
+
+  www: %\url{http://mattam82.github.io/Coq-Equations/}%
+
  %\end{frame}%
 *)
 
@@ -220,6 +224,14 @@ Equations nth {A} {n} (v : vec A n) (f : fin n) : A :=
 nth (a :: _) f0 := a;
 nth (_ :: v) (fS f) := nth v f.
 
+(** No more side conditions, handling of options or default values: *)
+Lemma nth_map {A B n} (v : vec A n) (f : A -> B) (i : fin n) :
+  nth (map f v) i = f (nth v i).
+Proof. todo. (* dependent elimination *)
+Qed.
+
+Extraction nth.
+
 (** The exercises associated with the lecture provide more examples of the 
   use of vectors and finite numbers. *)
 
@@ -310,5 +322,43 @@ equal x y := right _.
     %\cite{sozeau.Coq/FingerTrees/article}%). In this case the automatic tactic 
     is able to derive by itself that [n <> m -> S n <> S m].
 *)
+
+(** ** Elimination principles and rewrite rules *)
+
+Equations neg (b : bool) : bool :=
+neg true := false;
+neg false := true.
+
+Check neg_equation_1.
+Check neg_equation_2.
+
+Print neg_graph.
+About neg_elim.
+
+Lemma neg_inv : forall b, neg (neg b) = b.
+Proof. intros b. funelim (neg b). by simp neg. by []. Defined.
+
+Lemma nth_map' {A B n} (v : vec A n) (f : A -> B) (i : fin n) :
+  nth (map f v) i = f (nth v i).
+Proof. funelim (nth v i).
+  - cbn. by [].
+  - cbn. by apply: H. 
+Qed.
+
+(** Intermediate pattern-matchings using [with] *)
+
+Equations filter {A} (l : list A) (p : A -> bool) : list A :=
+filter Datatypes.nil p := Datatypes.nil ;
+filter (Datatypes.cons a l) p with p a => {
+  | true := a :: filter l p ;
+  | false := filter l p }.
+
+Lemma filter_length {A} (l : list A) (p : A -> bool) : length (filter l p) <= length l.
+Proof.
+  funelim (filter l p).
+  + simpl. constructor.
+  + rewrite -Heqcall; simpl. lia.
+  + rewrite -Heqcall. simpl. lia.
+Qed.
 
 (* end hide *)
