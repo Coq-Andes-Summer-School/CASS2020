@@ -4,3 +4,6 @@ HoTT/HoTT.v
 HoTT/MyInt.v
 HoTT/HIT.v
 HoTT/Funext.v
+
+# K: problem with coq-hammer on my machine
+# beta-tactics/cass2020.v
