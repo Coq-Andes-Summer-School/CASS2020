@@ -311,28 +311,21 @@ Definition issect'  {A B : Type} (f : A -> B) (g : B -> A)
 Definition is_adjoint' {A B : Type} (f : A -> B) (g : B -> A)
            (issect : g∘ f == id) (isretr : f  ∘ g == id) (a : A) : isretr (f a) = ap f (issect' f g issect isretr a).
 Proof.
-  unfold issect'.
-  apply moveL_M1.
-  rewrite ?ap_pp; rewrite <- concat_p_pp, <- ap_compose.
-  eapply concat. Focus 2.
-  apply (ap2 _ (refl _) (concat_pA1 (fun b => (isretr b)^) (ap f (issect a)))).
-  rewrite <- concat_p_pp.
-  pose (concat_A1p (fun b => (isretr b)) (isretr (f a))). cbn in i. 
-  apply moveL_Vp in i.
-  rewrite <- concat_p_pp in i. rewrite concat_pV in i.
-  rewrite concat_p1 in i.
-  rewrite ap_compose in i.
-  eapply concat. Focus 2. apply ap2. reflexivity.
-  rewrite concat_p_pp. eapply concat. Focus 2.
-  apply ap2. eapply concat. Focus 2.
-  apply ap2. symmetry. apply i. reflexivity.
-  symmetry.
-  (* here we cancel out *)
-  apply concat_pV. reflexivity. reflexivity.
-  rewrite <- ? ap_compose. cbn. 
-  cbn. symmetry. eapply concat. refine (ap_pp ((f ∘ g) ∘f) _ _)^.
-  by rewrite concat_Vp. 
-Defined.
+  rewrite /issect'; apply: moveL_M1.
+  rewrite ?ap_pp -concat_p_pp -ap_compose.
+  pose b := (ap2 _ (refl _) (concat_pA1 (fun b => (isretr b)^) (ap f (issect a)))).
+  apply: (concat _ (b _ _ _ _)) => {b}.
+  rewrite -concat_p_pp.
+  move: (concat_A1p (fun b => (isretr b)) (isretr (f a)))=> /= /(moveL_Vp _ _ _).
+  rewrite -concat_p_pp concat_pV concat_p1 ap_compose=> i.
+  apply: concat.
+  2:{ apply: ap2; first reflexivity; rewrite concat_p_pp.
+      apply ap2; last reflexivity.
+      apply: concat; last (apply ap2; [symmetry; exact i| reflexivity]).
+      symmetry; apply concat_pV. }
+  rewrite -?ap_compose /=; symmetry; apply: (concat (ap_pp ((f ∘ g) ∘f) _ _)^ _).
+  by rewrite concat_Vp.
+Qed.
 
 Definition isequiv_adjointify {A B : Type} (f : A -> B) (g : B -> A)
            (issect : g∘ f == id) (isretr : f  ∘ g == id)  : IsEquiv f
@@ -755,9 +748,8 @@ Proof.
   assert (e : transport (fun X : X => R X x) p (Rrefl x) = Rrefl x).
   apply HR.
   rewrite e. clear e. 
-  move => i. apply moveL_Vp in i. move :i.
-  rewrite concat_pV. rewrite <- (concat_1p p^). move => i. apply inverse in i. apply moveL_M1 in i.
-  exact i.
+  move/(moveL_Vp _ _ _).
+  by rewrite concat_pV -(concat_1p p^)=> /inverse /(moveL_M1 _ _).
 Defined.
 
 Definition IsHProp_False: IsHProp False.
