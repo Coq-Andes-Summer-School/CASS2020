@@ -426,8 +426,8 @@ Definition IsHProp_to_IsIrr A : IsHProp A -> IsIrr A :=
 Definition IsIrr_to_IsHProp A : IsIrr A -> IsHProp A.
   unshelve econstructor.
   - apply X.
-  - move => e. unshelve eapply path2_contr. by apply IsIrr_inhab_IsContr.
-Defined. 
+  - move => e. apply: path2_contr. by apply IsIrr_inhab_IsContr.
+Defined.
     
 Definition IsHProp_inhab_isContr A {H:A -> IsContr A} : IsHProp A.
   apply IsIrr_to_IsHProp. move => x y. refine (path_contr _ _); auto. 
