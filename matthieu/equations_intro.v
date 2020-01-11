@@ -10,7 +10,7 @@
 (* begin hide *)
 Set Warnings "-notation-overridden".
 
-Require Import CASS2020.partiality_recursion.
+(* Require Import CASS2020.partiality_recursion. *)
 Require Import Utf8 List Program Lia Arith Compare_dec.
 Require Import Relation_Operators.
 Require Import ssreflect.
@@ -224,10 +224,20 @@ Equations nth {A} {n} (v : vec A n) (f : fin n) : A :=
 nth (a :: _) f0 := a;
 nth (_ :: v) (fS f) := nth v f.
 
+(* TODO: should propose this to Assia *)
+Tactic Notation "here" tactic1(t) :=
+  let h := fresh "h" in move=> h ; t h ; try clear h.
+
+(* TODO : ask matthieu to put this by default whenever something involved happens + putting a warning by default *)
+Arguments nth : simpl never.
+(* Arguments map : simpl never. *)
+
 (** No more side conditions, handling of options or default values: *)
 Lemma nth_map {A B n} (v : vec A n) (f : A -> B) (i : fin n) :
   nth (map f v) i = f (nth v i).
-Proof. todo. (* dependent elimination *)
+Proof.
+  elim: v i=> [|????] /ltac:(here depelim) //=; simp nth.
+  (* todo. (* dependent elimination *) *)
 Qed.
 
 Extraction nth.
@@ -251,7 +261,7 @@ Qed.
 Lemma vec_eq_dec {A n} `{EqDec A} (v w : vec A n) : { v = w } + { v <> w }.
 Proof.
   induction v.
-
+  (* 2:{ } *)
 
 
 

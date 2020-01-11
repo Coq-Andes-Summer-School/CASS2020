@@ -325,7 +325,7 @@ Proof.
       symmetry; apply concat_pV. }
   rewrite -?ap_compose /=; symmetry; apply: (concat (ap_pp ((f ∘ g) ∘f) _ _)^ _).
   by rewrite concat_Vp.
-Qed.
+Defined.
 
 Definition isequiv_adjointify {A B : Type} (f : A -> B) (g : B -> A)
            (issect : g∘ f == id) (isretr : f  ∘ g == id)  : IsEquiv f
