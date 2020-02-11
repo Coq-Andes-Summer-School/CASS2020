@@ -124,7 +124,7 @@ Module DefinitionExamples.
   (* This one is not well-typed *)
   Fail Definition nat_boo : Prop := 5 = cons 2 nil.
 
-  (* This one looks ill-typed, but a coercion has been instered *)
+  (* This one looks ill-typed, but a coercion has been inserted *)
   Definition bool_pos : Prop := forall b : bool, b < 2.
 
   (* See the "Queries and Inspection" section *)
@@ -132,7 +132,7 @@ Module DefinitionExamples.
     Print bool_pos.
     Print nat_of_bool.
 
-  (* Turning an argument into an implict one *)
+  (* Turning an argument into an implicit one *)
    Definition foo (A : Set) (x : A) : A := x.
 
    About foo.
@@ -182,9 +182,9 @@ Module FixpointExamples.
     end.
 
   (* naive exponentiation : if the fixpoint has more than one inductive 
-     argument, it is useful to document which one is decreasing, for the sake of  
+     argument, it is useful to document which one is decreasing, for the sake of
      documentation. *)
-  Fixpoint power_of (b : nat) (e : nat) : nat :=
+  Fixpoint power_of (b : nat) (e : nat) {struct e} : nat :=
     match e with
     | O => 1 (* returns 1 if e = 0 *)
     | S n => b * power_of b n (* if e = n + 1 for some n, return b * b^n with a
@@ -219,7 +219,7 @@ The syntax looks like:
 (*
    If you don't finish your proof but want to exit your lemma, you can't use
    [Qed]. Instead, you have two options: [Admitted]. 
-   This will let other proofs see and use your unfinsihed
+   This will let other proofs see and use your unfinished
    lemma, even though you haven't yet proven it. Naturally, this means it's
    important to remember if you're depending on an admitted lemma, because it
    means your top-level proof might not be correct. To see the admitted proofs
@@ -265,10 +265,10 @@ End LemmaExamples.
 
 What is above the ===== is the proof context, a list of named 
 assumptions, with their type. What is above the ==== is a type,
-with possible prenex quantifications and arrows. Part of the
+with possible prenex quantification and arrows. Part of the
 formal proof, the boring one, deals with moving items around
 the ====. Only the top most assumption or quantified variable
-can be named and pused to the context: this is an introduction step.
+can be named and used to the context: this is an introduction step.
 Any item from the context can be pushed on top of the statement
 (provided that this complies with possible dependencies): this
 is a generalization step. *)
@@ -307,7 +307,7 @@ Module TrivialExamples.
 Lemma three_plus_two : 3 + 2 = 5. Proof. by []. Qed.
 
 (* Because the current goal corresponds to a hypothesis in the *)
-(* context or in the premisse. *)
+(* context or in the premise. *)
 Lemma is_assumption (n m :nat) : n <= m -> n = m + 34 -> n <= m.
 Proof.
 by [].
@@ -320,16 +320,16 @@ Proof. by []. Qed.
 (* The database of hints can be extended using the command:
 Hint Resolve <name of the lemma>.
 
-A resolving hint should not feature precondtions (the statement should 
+A resolving hint should not feature preconditions (the statement should 
  not be an implication, as these would not be solved by the [by []] tactic.
 *)
 
-(* Finaly, in non-trivial proof, a final call to [[by []]] can be
+(* Finally, in non-trivial proof, a final call to [[by []]] can be
    replaced by a prenex [by]. It is a good practice to tag the line
    terminating a proof with such a prenex [by], but this is specially
    useful in the case of proofs with subgoals (e.g., case analysis). *)
 
-(* Tactics used in this proof are explaned in the next sections. *)
+(* Tactics used in this proof are explained in the next sections. *)
 Lemma prenex_by (n m : nat) : n = m -> n + m = n + n.
 Proof. by move=> e; rewrite e. Qed.
 
@@ -415,7 +415,7 @@ elim: m n => [|m IHm] // k.
   +  by [].
 Qed.
 
-(* Killing trivial subgoal with the // switch before performin a *)
+(* Killing trivial subgoal with the // switch before performing a *)
 (* case analysis on a variable in the remaining branches. *)
 Lemma leqNgt3 m n : (m <= n) = ~~ (n < m).
 Proof. 
@@ -431,7 +431,7 @@ by elim: m n => [|m IHm] // [].
 Qed.
 
 (* Simplification in an intro pattern: /= simplifies both goals by *)
-(* computation and can be insterted anywhere in an intro-pattern. It *)
+(* computation and can be inserted anywhere in an intro-pattern. It *)
 (* is often useful after an case analysis*)
 
 Lemma simpl_switch_bool b1 b2 : b1 && b2 = b2 && b1.
@@ -504,7 +504,7 @@ Qed.
 Lemma impl_elim2 (A B : Prop) : (A -> B) -> A -> B.
 Proof.
 move=> hAB hA.
-move/hAB: hA. (* hA is generalized, then given as argment to hAB, and *)
+move/hAB: hA. (* hA is generalized, then given as argument to hAB, and *)
               (* the resulting term is generalized. *)
 by [].
 Qed.
@@ -645,7 +645,7 @@ better stated using the [reflect] constant:
 
 reflect <prop statement> <bool statement>
 
-It is logicaly equivalent to a double implication:
+It is logically equivalent to a double implication:
  *)
 
 About iffP. 
@@ -664,7 +664,7 @@ apply: (iffP idP). (* we ca use iffP to fall back to a double implication *)
 - by case=> e; rewrite e //= orbT.
 Qed.
 
-(* Using a reflect statemene. Using a view feature of the tactic *)
+(* Using a reflect statement. Using a view feature of the tactic *)
 (* language, one can combine a deductive operation like *)
 (* intro/generalization/case/elim, with a modus ponens on an item in *)
 (* the context *)
@@ -712,12 +712,12 @@ Proof. move=> -> <-. by []. Qed.
 Lemma ex5 (n m : nat) : n = m.+1 -> ~~ (n == 0).
 Proof. move=> e. rewrite e /=. by []. Qed.
 
-(* A alternative version where everthing happens in the intro pattern *)
+(* A alternative version where everything happens in the intro pattern *)
 Lemma ex6 (n m : nat) : n = m.+1 -> ~~ (n == 0).
 Proof. move=> -> /=. by []. Qed.
  
-(* The most concise on of course only needs the rewrite, as [by] takes *)
-(* casre of computation. *)
+(* The most concise one of course only needs the rewrite, as [by] takes *)
+(* care of computation. *)
 
 Lemma ex7 (n m : nat) : n = m.+1 -> ~~ (n == 0).
 Proof. by move=> ->. Qed.
@@ -799,7 +799,7 @@ Module SearchExamples.
   Search (_ + _)%N. (* Mathematical Components addition on nat *)
 End SearchExamples.
 
-(* About gives useful informations about a defined constant, including
+(* About gives useful information about a defined constant, including
    its type and the status (implicit or not) of its argument. *)
 About cons.
 
@@ -807,7 +807,7 @@ About cons.
 Check 0.
 Check nat.
 
-(* Print displays the body of a definition, and the defintion of *)
+(* Print displays the body of a definition, and the definition of *)
 (* inductive types. *)
 Print negb.
 
